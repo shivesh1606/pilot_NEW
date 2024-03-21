@@ -7,15 +7,18 @@ from django.core.mail import send_mail
 from .models import Profile, Teacher, Student, Organization
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.exceptions import AuthenticationFailed
 from .serializers import ProfileSerializer, TeacherSerializer, StudentSerializer, OrganizationSerializer
 import random
 from django.http import JsonResponse
 import json
 from rest_framework.authtoken.models import Token
-
+from datetime import datetime,timedelta
+import jwt
 # Create your views here.
 
 @api_view(['GET'])
@@ -41,8 +44,21 @@ def loginUser(request):
     if user is not None:
         login(request, user)
         # Generate token
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({'success': True, 'token': token.key, 'message': 'Login successful'}, status=status.HTTP_202_ACCEPTED)
+        payload = {
+            "username": user.username,
+            "exp": datetime.utcnow() + timedelta(weeks=8),
+            "iat": datetime.utcnow()
+        }
+
+        token = jwt.encode(payload, "secret", algorithm="HS256")
+        response = Response()
+        response.set_cookie(key="jwt", value=token, httponly=True)
+        response.data = {
+            "jwt": token,
+        }
+
+        return response
+        
     else:
         return Response({'success': False, 'message': 'Username or password is incorrect'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -251,4 +267,51 @@ def reset_password(request):
             print("user does not exist")
             messages.error(request, "User does not exist")
             return Response({'success': False, 'message': 'User does not exist'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@csrf_exempt
+@permission_classes([AllowAny])
+@api_view(['GET'])
+def get_user_profile(request):
+    print(request.user.is_authenticated)
+    if request.user.is_authenticated:
+        profile = Profile.objects.get(user=request.user)
+        serializer = ProfileSerializer(profile)
+        return Response(serializer.data)
+    else:
+        return Response({'message': 'User not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class UserLoginView(APIView):
+    def post(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return Response({'success': True, 'login': True, 'message': 'User already Authenticated'})
         
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        try:
+            user = User.objects.get(username=email)
+        except User.DoesNotExist:
+            return Response({'success': False, 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        user = authenticate(request, username=email, password=password)
+
+        if user is None:
+            raise AuthenticationFailed(
+                "Either username or password is incorrect")
+
+        payload = {
+            "username": user.username,
+            "exp": datetime.utcnow() + timedelta(weeks=8),
+            "iat": datetime.utcnow()
+        }
+
+        token = jwt.encode(payload, "secret", algorithm="HS256")
+        response = Response()
+        response.set_cookie(key="jwt", value=token, httponly=True)
+        response.data = {
+            "jwt": token,
+        }
+
+        return response
