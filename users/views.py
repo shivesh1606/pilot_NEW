@@ -40,7 +40,7 @@ def loginUser(request):
         return Response({'success': False, 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     
     user = authenticate(request, username=email, password=password)
-
+    print("Logged In User: ", user)
     if user is not None:
         login(request, user)
         # Generate token
@@ -84,18 +84,19 @@ def registerUser(request):
             session_otp = request.session.get('otp')
             if str(session_otp) == otp:
                 try:
-                    username = request.data.get('name')
-                    email = request.data.get('email')
-                    phone = request.data.get('phone')
-                    pwd = request.data.get('password')
-                    cnfrm_pwd = request.data.get('confirmpassword')
+                    username = request.data['username']
+                    email = request.data['email']
+                    phone = request.data['phone']
+                    pwd = request.data['password1']
+                    cnfrm_pwd = request.data['password2']
+                    print(username, email, phone, pwd, cnfrm_pwd)
                 
                     if pwd == cnfrm_pwd:
                         profile = Profile.objects.filter(email=email)
                         user = User.objects.filter(email=email)
 
                         if not user.exists():
-                            user = User.objects.create_user(username=email, email=email)
+                            user = User.objects.create_user(username=username, email=email)
                             user.set_password(pwd)
                             profile = Profile.objects.create(user=user, name=username, email=email, phone=phone)
                             student = Student.objects.create(profile=profile)
@@ -119,8 +120,8 @@ def registerUser(request):
                 email = request.data.get('email')
                 phone = request.data.get('phone')
                 # status = request.data.get('status')
-                pwd = request.data.get('password')
-                cnfrm_pwd = request.data.get('confirmpassword')
+                pwd = request.data.get('password1')
+                cnfrm_pwd = request.data.get('password2')
                 if pwd == cnfrm_pwd:
                     print("here to generate otp")
                     otp = generate_otp()
@@ -275,7 +276,8 @@ def reset_password(request):
 def get_user_profile(request):
     print(request.user.is_authenticated)
     if request.user.is_authenticated:
-        profile = Profile.objects.get(user=request.user)
+        user_obj= User.objects.get(username=request.user)
+        profile = Profile.objects.get(user=user_obj)
         serializer = ProfileSerializer(profile)
         return Response(serializer.data)
     else:
