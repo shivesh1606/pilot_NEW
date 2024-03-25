@@ -1,7 +1,7 @@
 from django.db.models import Q
 from .models import Course, Review, Module, Video, Comment, SubComment, Notes,Monitor, Tags, Quiz, Question, Answer, Enrollment
 from users.models import Profile, Student, Organization, Teacher
-
+from .serializers import CourseSerializer
 def searchCourses(request):
     search_query = ''
     
@@ -17,5 +17,5 @@ def searchCourses(request):
         Q(module__name__icontains=search_query) |
         Q(module__description__icontains=search_query)
     )
-
+    courses = CourseSerializer(courses, many=True).data
     return courses, search_query

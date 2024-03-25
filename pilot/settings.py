@@ -155,7 +155,20 @@ REST_FRAMEWORK = {
 
 }
 
-
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+]
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',
 ]
+
+# Media Settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+CORS_ALLOW_CREDENTIALS = True
+# Allow all headers and all origins
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = '*'
+CORS_ALLOW_METHODS = '*'
+

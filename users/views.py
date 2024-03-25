@@ -49,12 +49,15 @@ def loginUser(request):
             "exp": datetime.utcnow() + timedelta(weeks=8),
             "iat": datetime.utcnow()
         }
+        user_profile = Profile.objects.get(user=user)
+        serializer = ProfileSerializer(user_profile,context={'request': request})
 
         token = jwt.encode(payload, "secret", algorithm="HS256")
         response = Response()
         response.set_cookie(key="jwt", value=token, httponly=True)
         response.data = {
             "jwt": token,
+            "user": serializer.data,
         }
 
         return response
@@ -81,7 +84,14 @@ def registerUser(request):
     else: 
         if 'otp' in request.data:
             otp = request.data['otp']
+            # Print Request cokkies
+            print(request.session.session_key)
+            print(request.COOKIES)
+            print(request.session.get('email'))
+            print(request.session.get('otp'))
             session_otp = request.session.get('otp')
+            print("otp", otp)
+            print("session_otp", session_otp)
             if str(session_otp) == otp:
                 try:
                     username = request.data['username']
@@ -96,7 +106,7 @@ def registerUser(request):
                         user = User.objects.filter(email=email)
 
                         if not user.exists():
-                            user = User.objects.create_user(username=username, email=email)
+                            user = User.objects.create_user(username=email, email=email)
                             user.set_password(pwd)
                             profile = Profile.objects.create(user=user, name=username, email=email, phone=phone)
                             student = Student.objects.create(profile=profile)
@@ -116,17 +126,19 @@ def registerUser(request):
                 return Response({'sucesss':False, 'message':'OTP is incorrect'}, status=status.HTTP_401_UNAUTHORIZED)
         else:
             try:
-                username = request.data.get('name')
-                email = request.data.get('email')
-                phone = request.data.get('phone')
-                # status = request.data.get('status')
-                pwd = request.data.get('password1')
-                cnfrm_pwd = request.data.get('password2')
-                if pwd == cnfrm_pwd:
+                username = request.data['username']
+                email = request.data['email']
+                phone = request.data['phone']
+                user_status = request.data['status']
+                pwd = request.data['password1']
+                cnfrm_pwd = request.data['password2']
+                print(username, email, phone, pwd, cnfrm_pwd)
+                print(pwd==cnfrm_pwd)
+                if pwd == cnfrm_pwd:                           
                     print("here to generate otp")
                     otp = generate_otp()
-                    print("otp generated")
                     request.session['otp'] = otp
+                    print(request.session['otp'])
                     request.session['email'] = email
                     request.session['username'] = username
                     request.session['phone'] = phone
@@ -147,6 +159,8 @@ def registerUser(request):
                         print("otp not sent", e)
                         return Response({'success': False, 'message': 'Error in sending email'+str(e)}, status=status.HTTP_400_BAD_REQUEST)
                     return Response({'success': True, 'message': 'OTP sent successfully'}, status=status.HTTP_201_OK)
+                else:
+                    return Response({'success': False, 'message': 'Password does not match'}, status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
                 print("error in generating otp", e)
                 return Response({'success': False, 'message': 'Unprecendented error'}, status=status.HTTP_400_BAD_REQUEST)
