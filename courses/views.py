@@ -54,9 +54,9 @@ def course_review(request, course_id):
         return JsonResponse({'status': 'error', 'message': 'Review not added successfully'})
 
 
-@login_required
 @api_view(['GET'])
 def get_all_courses(request):
+    print(request.user)
     courses = Course.objects.all()
     courses, search_query = searchCourses(request)
 

@@ -17,5 +17,5 @@ def searchCourses(request):
         Q(module__name__icontains=search_query) |
         Q(module__description__icontains=search_query)
     )
-    courses = CourseSerializer(courses, many=True).data
+    courses = CourseSerializer(courses, many=True,context={'request': request}).data
     return courses, search_query

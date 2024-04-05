@@ -16,6 +16,21 @@ class CourseSerializer(serializers.ModelSerializer):
         model = Course
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        print(instance.image_course)
+        try:
+            if instance.image_course:
+                data['image_course'] = request.build_absolute_uri(instance.image_course.url)
+            else:
+                data['image_course'] = None
+            print(data['image_course'])
+        except Exception as e:
+            print(e)
+        return data
+
+
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Enrollment

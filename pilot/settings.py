@@ -56,7 +56,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # 'pilot.middleware.JWTAuthenticationMiddleware',  # Add the JWTAuthenticationMiddleware to the middleware list
+    'pilot.middleware.JWTAuthenticationMiddleware',  # Add the JWTAuthenticationMiddleware to the middleware list
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -169,7 +169,8 @@ CORS_ALLOW_HEADERS = [
     # Add other headers as needed
     'x-csrftoken',  # Add 'x-csrftoken' to the list of allowed headers
     'csrfmiddlewaretoken',  # Add 'csrfmiddlewaretoken' to the list of allowed headers
-    
+    'Content-Type',
+    'Authorization',
 ]
 
 
