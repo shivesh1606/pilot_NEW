@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-#3!_@^'  # This is a temporary secret key for deve
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost','*']
 
 
 # Application definition
@@ -56,7 +56,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'pilot.middleware.JWTAuthenticationMiddleware',  # Add the JWTAuthenticationMiddleware to the middleware list
+    # 'pilot.middleware.JWTAuthenticationMiddleware',  # Add the JWTAuthenticationMiddleware to the middleware list
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -155,12 +155,6 @@ REST_FRAMEWORK = {
 
 }
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-]
-CORS_ORIGIN_WHITELIST = [
-    'http://localhost:3000',
-]
 
 # Media Settings
 MEDIA_URL = '/media/'
@@ -169,6 +163,18 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 CORS_ALLOW_CREDENTIALS = True
 # Allow all headers and all origins
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_HEADERS = '*'
 CORS_ALLOW_METHODS = '*'
+CORS_ALLOW_HEADERS = [
+    'Content-Type',
+    # Add other headers as needed
+    'x-csrftoken',  # Add 'x-csrftoken' to the list of allowed headers
+    'csrfmiddlewaretoken',  # Add 'csrfmiddlewaretoken' to the list of allowed headers
+    
+]
 
+
+# SESSION_COOKIE_SAMESITE = 'None'  # Or 'Strict', depending on your requirements
+
+CSRF_ALLOW_ALL_ORIGINS = True
+
+AUTH_MODEL = 'users.Profile'

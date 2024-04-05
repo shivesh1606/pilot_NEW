@@ -19,6 +19,7 @@ import json
 from rest_framework.authtoken.models import Token
 from datetime import datetime,timedelta
 import jwt
+from .token import generate_token,confirm_token
 # Create your views here.
 
 @api_view(['GET'])
@@ -40,9 +41,10 @@ def loginUser(request):
         return Response({'success': False, 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     
     user = authenticate(request, username=email, password=password)
-    print("Logged In User: ", user)
+    profile=Profile.objects.get(user=user)
+    if profile.is_verified == False:
+        return Response({'success': False, 'message': 'User not Verified'}, status=status.HTTP_401_UNAUTHORIZED)
     if user is not None:
-        login(request, user)
         # Generate token
         payload = {
             "username": user.username,
@@ -125,45 +127,43 @@ def registerUser(request):
             else:
                 return Response({'sucesss':False, 'message':'OTP is incorrect'}, status=status.HTTP_401_UNAUTHORIZED)
         else:
-            try:
-                username = request.data['username']
-                email = request.data['email']
-                phone = request.data['phone']
-                user_status = request.data['status']
-                pwd = request.data['password1']
-                cnfrm_pwd = request.data['password2']
-                print(username, email, phone, pwd, cnfrm_pwd)
-                print(pwd==cnfrm_pwd)
-                if pwd == cnfrm_pwd:                           
-                    print("here to generate otp")
-                    otp = generate_otp()
-                    request.session['otp'] = otp
-                    print(request.session['otp'])
-                    request.session['email'] = email
-                    request.session['username'] = username
-                    request.session['phone'] = phone
-                    # request.session['status'] = status
-                    request.session['password'] = pwd
-                    print("email:", email)
-                    print(f"the otp is {otp}")
-                    try:
-                        send_mail(
-                            'OTP Verification',
-                            f'Your OTP is {otp}',
-                            'pilotlms.kgp@gmail.com',
-                            [email],
-                            fail_silently=False,
-                        )
-                        print("otp sent ig")
-                    except Exception as e:
-                        print("otp not sent", e)
-                        return Response({'success': False, 'message': 'Error in sending email'+str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                    return Response({'success': True, 'message': 'OTP sent successfully'}, status=status.HTTP_201_OK)
-                else:
-                    return Response({'success': False, 'message': 'Password does not match'}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                print("error in generating otp", e)
-                return Response({'success': False, 'message': 'Unprecendented error'}, status=status.HTTP_400_BAD_REQUEST)
+            # try:
+            username = request.data['username']
+            email = request.data['email']
+            phone = request.data['phone']
+            user_status = request.data['status']
+            pwd = request.data['password1']
+            cnfrm_pwd = request.data['password2']
+            print(username, email, phone, pwd, cnfrm_pwd)
+            print(pwd==cnfrm_pwd)
+            if pwd == cnfrm_pwd:
+                user = User.objects.create_user(username=email, email=email)
+                user.set_password(pwd)
+                profile = Profile.objects.create(user=user, name=username, email=email, phone=phone)
+                student = Student.objects.create(profile=profile)
+                user.save()
+                profile.save()
+                student.save()  
+                token = generate_token(user.email)
+                try:
+                    print("otp sent ig",f'Your verification link is http://127.0.0.1:8000/user/confirm/{token}')
+                    send_mail(
+                        'OTP Verification',
+                        f'Your verification link is http://127.0.0.1:8000/user/confirm/{token}',
+                        'pilotlms.kgp@gmail.com',
+                        [email],
+                        fail_silently=False,
+                    )
+
+                except Exception as e:
+                    print("otp not sent", e)
+                    return Response({'success': False, 'message': 'Error in sending email'+str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'success': True, 'message': 'OTP sent successfully'}, status=status.HTTP_201_OK)
+            else:
+                return Response({'success': False, 'message': 'Password does not match'}, status=status.HTTP_400_BAD_REQUEST)
+            # except Exception as e:
+            #     print("error in generating otp", e)
+            #     return Response({'success': False, 'message': 'Unprecendented error'}, status=status.HTTP_400_BAD_REQUEST)
         
 @api_view(['GET', 'PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
@@ -297,37 +297,14 @@ def get_user_profile(request):
     else:
         return Response({'message': 'User not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
 
-
-class UserLoginView(APIView):
-    def post(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            return Response({'success': True, 'login': True, 'message': 'User already Authenticated'})
-        
-        email = request.data.get('email')
-        password = request.data.get('password')
-
-        try:
-            user = User.objects.get(username=email)
-        except User.DoesNotExist:
-            return Response({'success': False, 'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-        user = authenticate(request, username=email, password=password)
-
-        if user is None:
-            raise AuthenticationFailed(
-                "Either username or password is incorrect")
-
-        payload = {
-            "username": user.username,
-            "exp": datetime.utcnow() + timedelta(weeks=8),
-            "iat": datetime.utcnow()
-        }
-
-        token = jwt.encode(payload, "secret", algorithm="HS256")
-        response = Response()
-        response.set_cookie(key="jwt", value=token, httponly=True)
-        response.data = {
-            "jwt": token,
-        }
-
-        return response
+@api_view(['GET'])
+def confirm_email(request,token):
+    print("token", token)
+    email = confirm_token(token)
+    print(email)
+    user = User.objects.get(email=email)
+    profile=Profile.objects.get(user=user)
+    profile.is_verified = True
+    profile.verified_on = datetime.now()
+    profile.save()
+    return Response({'success': True, 'message': 'User confirmed successfully'}, status=status.HTTP_200_OK)

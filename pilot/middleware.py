@@ -7,12 +7,14 @@ from django.utils.deprecation import MiddlewareMixin
 from django.contrib.auth.models import AnonymousUser, User
 from django.conf import LazySettings
 from django.contrib.auth.middleware import get_user
-
+from django.urls import reverse, resolve
 settings = LazySettings()
 
 
 class JWTAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
+        if request.path.startswith(reverse('admin:index')):
+            return
         request.user = SimpleLazyObject(lambda: self.__class__.get_jwt_user(request))
 
     @staticmethod

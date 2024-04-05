@@ -26,6 +26,8 @@ class Profile(BaseModel):
     facebook = models.URLField(null=True, blank=True)
     instagram = models.URLField(null=True, blank=True)
     linkedin = models.URLField(null=True, blank=True)
+    is_verified = models.BooleanField(default=False)
+    verfied_on = models.DateTimeField(null=True, blank=True)
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True, editable=False)
 
     def __str__(self):
