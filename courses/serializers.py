@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Tags, Course, Review, Enrollment, Module, Video, Comment, SubComment, Notes, UserProgress, CourseProgress, Quiz, Question, Answer, Monitor
-
+from .serializerhelper import get_user_course_progress
 class TagsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tags
@@ -30,6 +30,25 @@ class CourseSerializer(serializers.ModelSerializer):
             print(e)
         return data
 
+class DashboardCourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        print(instance.image_course)
+        data['user_progress']=get_user_course_progress(request.user, instance)
+        try:
+            if instance.image_course:
+                data['image_course'] = request.build_absolute_uri(instance.image_course.url)
+            else:
+                data['image_course'] = None
+            print(data['image_course'])
+        except Exception as e:
+            print(e)
+        return data
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     class Meta:

@@ -41,6 +41,9 @@ class Course(BaseModel):
     #     super().save(*args, **kwargs)
     def __str__(self):
         return self.name
+    
+    def get_enrolled_users(self):
+        return self.enroller_user.all()
 
 class Review(models.Model):
     course = models.ForeignKey('Course', on_delete=models.CASCADE)
@@ -57,6 +60,16 @@ class Enrollment(BaseModel):
     student = models.ForeignKey(User, related_name="user_courses", on_delete=models.CASCADE)
     class Meta:
         unique_together = ('course', 'student')
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        user_video_progresses = []
+        for video in self.course.video_set.all():
+            user_video_progresses.append(UserVideoProgress(user=self.student, video=video))
+        UserVideoProgress.objects.bulk_create(user_video_progresses)
+        user_progress = UserProgress.objects.get_or_create(user=self.student, course=self.course)[0]
+        user_progress.total_number_of_videos = self.course.video_set.count()
+
+        user_progress.save()
 
 class Module(BaseModel):
     name = models.CharField(max_length=2000, blank=True, null=True)
@@ -213,7 +226,8 @@ class UserVideoProgress(BaseModel):
 
     def __str__(self):
         video_length=timedelta(seconds=self.video.duration)
-        percentage_watched = (self.relative_timestamp - self.created_at) / video_length
+        percentage_watched = (video_length-self.relative_timestamp) / video_length
+        print(percentage_watched)
         return f"{self.user.username} - {self.video.name} - {self.is_watched} - {percentage_watched}"
 
     def save(self, *args, **kwargs):
@@ -221,8 +235,9 @@ class UserVideoProgress(BaseModel):
             self.is_watched = True
         super().save(*args, **kwargs)
     
-    # return the percentage of the video watched by the user
-    def get_percentage_watched(self):
+    @property
+    def percentage_watched(self):
         video_length=timedelta(seconds=self.video.duration)
-        percentage_watched = (self.relative_timestamp - self.created_at) / video_length
+        percentage_watched = ((video_length-self.relative_timestamp) / video_length)*100
+        print(percentage_watched)
         return percentage_watched

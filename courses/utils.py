@@ -19,3 +19,5 @@ def searchCourses(request):
     )
     courses = CourseSerializer(courses, many=True,context={'request': request}).data
     return courses, search_query
+
+

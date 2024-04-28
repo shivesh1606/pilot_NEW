@@ -8,7 +8,7 @@ from django.contrib import messages
 from .forms import ReviewForm
 from django.utils import timezone
 from .models import Course, Review, Module, Video, Comment, SubComment, Notes, Monitor, Tags, Quiz, Question, Answer, Enrollment
-from .serializers import CommentSerializer
+from .serializers import CommentSerializer,EnrollmentSerializer,CourseSerializer,DashboardCourseSerializer
 from users.models import Profile, Student, Organization, Teacher
 from datetime import datetime, timedelta
 # from django.contrib.gis.geoip2 import GeoIP2
@@ -20,6 +20,7 @@ from .utils import searchCourses
 from django.shortcuts import redirect
 from django.http import JsonResponse
 
+from django.contrib.auth.models import User
 # Create your views here.
 
 # an api which returns the complete course model without id, the complete list
@@ -649,12 +650,29 @@ def get_course_progress(request, course_id):
         course_progress=course_progress
     return JsonResponse(course_progress, safe=False)
 
+# @api_view(['GET'])
+# def get_user_enrolled_courses(request):
+#     user = request.user
+#     print(user)
+#     courses = Enrollment.objects.filter(student=user)
+#     # user_courses=[]
+#     # for c in courses:
+#     #     print(c.course,c.student)
+#     #     print(type(c.student),type(user))
+#     #     print(c.student == user)
+#     #     print(c.student.id,user.id)
+#     #     print(type(c.student.id),type(user.id))
+#     #     if c.student.id == user.id:
+#     #         print(c.course)
+#     #         user_courses.append(c.course)
+#     course=EnrollmentSerializer(courses,many=True).data
+#     return JsonResponse(courses, safe=False)
 @api_view(['GET'])
 def get_user_enrolled_courses(request):
     user = request.user
-    print(user)
     courses = Enrollment.objects.filter(student=user)
-    courses = list(courses.values())
-    for i in courses:
-        i.pop('id')
-    return JsonResponse(courses, safe=False)
+    course_list=[]
+    for c in courses:
+        course_list.append(c.course)
+    serilized_course=DashboardCourseSerializer(course_list,many=True, context={'request': request})
+    return JsonResponse(serilized_course.data, safe=False)
