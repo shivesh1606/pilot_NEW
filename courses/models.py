@@ -201,3 +201,28 @@ class Monitor(BaseModel):
 
     # class Meta:
     #     unique_together = ('user', 'ip', 'landing_page')
+# Add a model to track user progress in watching videos and it returs the percentage of the video watched by the user
+class UserVideoProgress(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    video = models.ForeignKey(Video, on_delete=models.CASCADE)
+    is_watched = models.BooleanField(default=False)
+    relative_timestamp = models.DurationField(default=timedelta(seconds=0))
+
+    class Meta:
+        unique_together = ('user', 'video')
+
+    def __str__(self):
+        video_length=timedelta(seconds=self.video.duration)
+        percentage_watched = (self.relative_timestamp - self.created_at) / video_length
+        return f"{self.user.username} - {self.video.name} - {self.is_watched} - {percentage_watched}"
+
+    def save(self, *args, **kwargs):
+        if self.relative_timestamp >= timedelta(seconds=self.video.duration):
+            self.is_watched = True
+        super().save(*args, **kwargs)
+    
+    # return the percentage of the video watched by the user
+    def get_percentage_watched(self):
+        video_length=timedelta(seconds=self.video.duration)
+        percentage_watched = (self.relative_timestamp - self.created_at) / video_length
+        return percentage_watched

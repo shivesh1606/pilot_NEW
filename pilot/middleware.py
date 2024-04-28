@@ -21,20 +21,24 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
     def get_jwt_user(request):
         user_jwt = get_user(request)
         print("user_jwt",user_jwt)
+        print("try"*100)
         if user_jwt is not None and user_jwt.is_authenticated:
             return user_jwt
         token = request.META.get('HTTP_AUTHORIZATION', None)
-
+        print(token)
+        token=token.split(' ')[1]
+        token=str(token)
         user_jwt = AnonymousUser()
         if token is not None:
             try:
                 user_jwt = jwt.decode(
                     token,
-                    settings.SIMPLE_JWT,
+                    "secret", algorithm="HS256"
                 )
+                print("Try"*100)
+                print("user_jwt",user_jwt)
                 user_jwt = User.objects.get(
-                    id=user_jwt['data']['user']['id']
-                )
+                    username=user_jwt['username'])
             except Exception as e: # NoQA
                 print('Error decoding token',e)
                 traceback.print_exc()

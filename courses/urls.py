@@ -68,4 +68,8 @@ urlpatterns = [
     path("course/enroll_course/", views.enroll_course, name="enroll_course"),
     path("comment/add_video_comment/", views.add_video_comment, name="add_video_comment"),
     path("comment/get_video_comments/<int:video_id>", views.get_video_comments, name="get_video_comments"),
+    path("video/set_video_progress/", views.update_user_video_progress, name="set_video_progress"),
+    path("get_user_progress/", views.get_user_video_progress, name="get_user_progress"),
+    path("get_course_progress/", views.get_course_progress, name="get_course_progress"),
+    path("user_enrolled_courses/", views.get_user_enrolled_courses, name="user_enrolled_courses"),
 ]

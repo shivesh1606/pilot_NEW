@@ -616,3 +616,44 @@ def update_comment(request, comment_id):
         return JsonResponse({'status': 'success', 'message': 'Comment updated successfully', 'comment': comment})
     else:
         return JsonResponse({'status': 'error', 'message': 'You are not the owner of this comment'})
+
+
+@api_view(['PUT',"POST"])
+def update_user_video_progress(request):
+    video_id = request.data.get('video_id')
+    user = request.user
+    video = get_object_or_404(Video, id=video_id)
+    user_progress, created = UserVideoProgress.objects.get_or_create(
+        user=user, video=video)
+    user_progress.relative_timestamp = max(request.data.get('timestamp'), user_progress.relative_timestamp)
+    user_progress.save()
+    return JsonResponse({'status': 'success', 'message': 'User video progress updated successfully', 'user_progress': user_progress})
+
+@api_view(['GET'])
+def get_user_video_progress(request, video_id):
+    video = get_object_or_404(Video, id=video_id)
+    user_progress = UserVideoProgress.objects.filter(video=video)
+    user_progress = list(user_progress.get_percentage_watched())
+    return JsonResponse(user_progress, safe=False)
+
+@api_view(['GET'])
+def get_course_progress(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    video_list = Video.objects.filter(course=course)
+    course_progress = 0
+    for video in video_list:
+        user_progress = UserVideoProgress.objects.filter(video=video)
+        user_progress = list(user_progress.get_percentage_watched())
+        user_progress =sum(user_progress)/len(user_progress)
+        course_progress=course_progress
+    return JsonResponse(course_progress, safe=False)
+
+@api_view(['GET'])
+def get_user_enrolled_courses(request):
+    user = request.user
+    print(user)
+    courses = Enrollment.objects.filter(student=user)
+    courses = list(courses.values())
+    for i in courses:
+        i.pop('id')
+    return JsonResponse(courses, safe=False)
