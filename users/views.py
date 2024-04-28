@@ -180,9 +180,9 @@ def registerUser(request):
 @csrf_exempt
 @api_view(['GET', 'PUT', 'PATCH'])
 def update_profile(request):
-    print(request.user.is_authenticated)
-    print("Something")
-    print(request.user)
+    # print(request.user.is_authenticated)
+    # print("Something")
+    # print(request.user)
     # if request.user.is_authenticated:
     try:
         r_profile = Profile.objects.get(user=request.user)
@@ -190,14 +190,21 @@ def update_profile(request):
         return Response({'success':True, 'message': 'Profile does not exist for user'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method in ['PUT', 'PATCH']:
-        serializer = ProfileSerializer(r_profile, data=request.data, partial=True)
+        data = request.data.copy()
+
+        # Remove any fields with null values from the request data
+        for key, value in data.items():
+            if value is None:
+                del data[key]
+
+        serializer = ProfileSerializer(r_profile, data=data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            updated_profile = serializer.save()
 
             if r_profile.status == "Student":
                 student = Student.objects.filter(profile=r_profile).first()
                 if student:
-                    student_serializer = StudentSerializer(student, data=request.data, partial=True)
+                    student_serializer = StudentSerializer(student, data=data, partial=True)
                     if student_serializer.is_valid():
                         student_serializer.save()
                     else:
@@ -206,7 +213,7 @@ def update_profile(request):
             elif r_profile.status == "Teacher":
                 teacher = Teacher.objects.filter(profile=r_profile).first()
                 if teacher:
-                    teacher_serializer = TeacherSerializer(teacher, data=request.data, partial=True)
+                    teacher_serializer = TeacherSerializer(teacher, data=data, partial=True)
                     if teacher_serializer.is_valid():
                         teacher_serializer.save()
                     else:
@@ -215,13 +222,15 @@ def update_profile(request):
             elif r_profile.status == "Organization":
                 organization = Organization.objects.filter(profile=r_profile).first()
                 if organization:
-                    organization_serializer = OrganizationSerializer(organization, data=request.data, partial=True)
+                    organization_serializer = OrganizationSerializer(organization, data=data, partial=True)
                     if organization_serializer.is_valid():
                         organization_serializer.save()
                     else:
                         return Response(organization_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            profile_serializer = ProfileSerializer(updated_profile)
 
-            return Response({'success': True, 'message': 'Profile updated successfully'}, status=status.HTTP_201_CREATED)
+            return Response({'success': True, 'message': 'Profile updated successfully', 'profile': profile_serializer.data}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

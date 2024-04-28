@@ -27,8 +27,6 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
         print(token)
         user_jwt = AnonymousUser()
         if token is not None:
-            token=token.split(' ')[1]
-            token=str(token)
             try:
                 token=token.split(' ')[1]
                 token=str(token)
