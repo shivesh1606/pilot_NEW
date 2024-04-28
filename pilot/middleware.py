@@ -15,31 +15,31 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
         if request.path.startswith(reverse('admin:index')):
             return
-        request.user = SimpleLazyObject(lambda: self.__class__.get_jwt_user(request))
+        request.user = self.get_jwt_user(request)
 
     @staticmethod
     def get_jwt_user(request):
+        print('Getting JWT user')
         user_jwt = get_user(request)
-        print("user_jwt",user_jwt)
-        print("try"*100)
         if user_jwt is not None and user_jwt.is_authenticated:
             return user_jwt
         token = request.META.get('HTTP_AUTHORIZATION', None)
-        print(token)
-        token=token.split(' ')[1]
-        token=str(token)
+        print('Request META', request.META)
+        print('Token', token)
         user_jwt = AnonymousUser()
         if token is not None:
+            token=token.split(' ')[1]
+            token=str(token)
             try:
                 user_jwt = jwt.decode(
                     token,
                     "secret", algorithm="HS256"
                 )
-                print("Try"*100)
-                print("user_jwt",user_jwt)
                 user_jwt = User.objects.get(
                     username=user_jwt['username'])
+                request.user = user_jwt
             except Exception as e: # NoQA
                 print('Error decoding token',e)
                 traceback.print_exc()
+        print('Returning user_jwt', user_jwt)
         return user_jwt

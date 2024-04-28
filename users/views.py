@@ -20,13 +20,24 @@ from rest_framework.authtoken.models import Token
 from datetime import datetime,timedelta
 import jwt
 from .token import generate_token,confirm_token
+from django.views.decorators.csrf import ensure_csrf_cookie
 # Create your views here.
 
 @api_view(['GET'])
 def coursebase(request):
     return Response({'success': True, 'message': 'Welcome to the course base'})
 
+from rest_framework_simplejwt.tokens import RefreshToken
+
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
 @csrf_exempt
+@ensure_csrf_cookie
 @api_view(['POST'])
 def loginUser(request):
     if request.user.is_authenticated:
@@ -54,7 +65,8 @@ def loginUser(request):
         user_profile = Profile.objects.get(user=user)
         serializer = ProfileSerializer(user_profile,context={'request': request})
 
-        token = jwt.encode(payload, "secret", algorithm="HS256")
+        token = get_tokens_for_user(user)['access']
+        print(token)
         response = Response()
         response.set_cookie(key="jwt", value=token, httponly=True)
         response.data = {
@@ -165,54 +177,57 @@ def registerUser(request):
             #     print("error in generating otp", e)
             #     return Response({'success': False, 'message': 'Unprecendented error'}, status=status.HTTP_400_BAD_REQUEST)
         
+@csrf_exempt
 @api_view(['GET', 'PUT', 'PATCH'])
-@permission_classes([IsAuthenticated])
 def update_profile(request):
-    if request.user.is_authenticated:
-        try:
-            r_profile = Profile.objects.get(user=request.user)
-        except Profile.DoesNotExist:
-            return Response({'success':True, 'message': 'Profile does not exist for user'}, status=status.HTTP_404_NOT_FOUND)
+    print(request.user.is_authenticated)
+    print("Something")
+    print(request.user)
+    # if request.user.is_authenticated:
+    try:
+        r_profile = Profile.objects.get(user=request.user)
+    except Profile.DoesNotExist:
+        return Response({'success':True, 'message': 'Profile does not exist for user'}, status=status.HTTP_404_NOT_FOUND)
 
-        if request.method in ['PUT', 'PATCH']:
-            serializer = ProfileSerializer(r_profile, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
+    if request.method in ['PUT', 'PATCH']:
+        serializer = ProfileSerializer(r_profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
 
-                if r_profile.status == "Student":
-                    student = Student.objects.filter(profile=r_profile).first()
-                    if student:
-                        student_serializer = StudentSerializer(student, data=request.data, partial=True)
-                        if student_serializer.is_valid():
-                            student_serializer.save()
-                        else:
-                            return Response(student_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            if r_profile.status == "Student":
+                student = Student.objects.filter(profile=r_profile).first()
+                if student:
+                    student_serializer = StudentSerializer(student, data=request.data, partial=True)
+                    if student_serializer.is_valid():
+                        student_serializer.save()
+                    else:
+                        return Response(student_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-                elif r_profile.status == "Teacher":
-                    teacher = Teacher.objects.filter(profile=r_profile).first()
-                    if teacher:
-                        teacher_serializer = TeacherSerializer(teacher, data=request.data, partial=True)
-                        if teacher_serializer.is_valid():
-                            teacher_serializer.save()
-                        else:
-                            return Response(teacher_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            elif r_profile.status == "Teacher":
+                teacher = Teacher.objects.filter(profile=r_profile).first()
+                if teacher:
+                    teacher_serializer = TeacherSerializer(teacher, data=request.data, partial=True)
+                    if teacher_serializer.is_valid():
+                        teacher_serializer.save()
+                    else:
+                        return Response(teacher_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-                elif r_profile.status == "Organization":
-                    organization = Organization.objects.filter(profile=r_profile).first()
-                    if organization:
-                        organization_serializer = OrganizationSerializer(organization, data=request.data, partial=True)
-                        if organization_serializer.is_valid():
-                            organization_serializer.save()
-                        else:
-                            return Response(organization_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            elif r_profile.status == "Organization":
+                organization = Organization.objects.filter(profile=r_profile).first()
+                if organization:
+                    organization_serializer = OrganizationSerializer(organization, data=request.data, partial=True)
+                    if organization_serializer.is_valid():
+                        organization_serializer.save()
+                    else:
+                        return Response(organization_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-                return Response({'success': True, 'message': 'Profile updated successfully'}, status=status.HTTP_201_CREATED)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'success': True, 'message': 'Profile updated successfully'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({'message': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-    else:
-        return Response({'message': 'User not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+    return Response({'message': 'Invalid request method'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    # else:
+    #     return Response({'message': 'User not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(['GET'])
 def profile_detail(request, profile_id):
