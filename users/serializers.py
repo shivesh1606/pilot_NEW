@@ -10,7 +10,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         request = self.context.get('request')
         if instance.image_profile:
-            data['image_profile'] = request.build_absolute_uri(instance.image_profile.url)
+            data['image_profile'] = request.build_absolute_uri(instance.image_profile.url) if request else None
         else:
             data['image_profile'] = None
         print(data['image_profile'])

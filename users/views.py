@@ -226,7 +226,13 @@ def profile_detail(request, profile_id):
     elif profile.status == 'Teacher':
         teacher = get_object_or_404(Teacher, profile=profile)
         teacher_serializer = TeacherSerializer(teacher)
-        return Response(teacher_serializer.data)
+        # also i need details from the corresponding profile model of that teacher
+        profile_serializer = ProfileSerializer(profile)
+        data = {
+            'teacher': teacher_serializer.data,
+            'profile': profile_serializer.data
+        }
+        return Response(data)
 
     else:
         student = get_object_or_404(Student, profile=profile)
@@ -308,3 +314,26 @@ def confirm_email(request,token):
     profile.verified_on = datetime.now()
     profile.save()
     return Response({'success': True, 'message': 'User confirmed successfully'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def user_list(request):
+    if request.method == 'GET':
+        user_profile = Profile.objects.get(user=request.user)
+        if user_profile.status != 'Organization':
+            return Response({'error': 'Access denied. Only organizations can access this endpoint.'}, status=403)
+        
+        teacher_profiles = Profile.objects.filter(teacher__isnull=False)
+
+        # Get all student profiles
+        student_profiles = Profile.objects.filter(student__isnull=False)
+
+        # Serialize the data
+        teacher_profile_serializer = ProfileSerializer(teacher_profiles, many=True)
+        student_profile_serializer = ProfileSerializer(student_profiles, many=True)
+
+        # Combine the serialized data
+        user_data = teacher_profile_serializer.data + student_profile_serializer.data
+
+        # Return the response with user_data as a list
+        return Response(user_data)
