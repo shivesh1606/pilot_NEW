@@ -32,6 +32,11 @@ class Profile(BaseModel):
 
     def __str__(self):
         return str(self.name)
+    def save(self, *args, **kwargs):
+        super(Profile, self).save(*args, **kwargs)
+        self.created_by = self.user
+        self.modified_by = self.user
+        
     
 class Organization(BaseModel):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, null=True, blank=True)

@@ -8,7 +8,7 @@ from django.contrib import messages
 from .forms import ReviewForm
 from django.utils import timezone
 from .models import Course, Review, Module, Video, Comment, SubComment, Notes, Monitor, Tags, Quiz, Question, Answer, Enrollment
-from .serializers import CommentSerializer,EnrollmentSerializer,CourseSerializer,DashboardCourseSerializer
+from .serializers import *
 from users.models import Profile, Student, Organization, Teacher
 from datetime import datetime, timedelta
 # from django.contrib.gis.geoip2 import GeoIP2
@@ -21,6 +21,9 @@ from django.shortcuts import redirect
 from django.http import JsonResponse
 
 from django.contrib.auth.models import User
+
+# import genric views
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 # Create your views here.
 
 # an api which returns the complete course model without id, the complete list
@@ -200,58 +203,26 @@ def create_course(request):
     else:
         return JsonResponse({'status': 'error', 'message': 'You are not a teacher'})
 
+# create generic view for CourseDetail using DEtailView for api
+class CourseDetailView(DetailView):
+    model = Course
+    context_object_name = 'course'
+    serializer_class = CourseSerializer
+    
+    def get(self, request, *args, **kwargs):
+        # Get the course object
+        course = self.get_object()
+        
+        # Serialize the course object
+        serializer = self.serializer_class(course,context={'request': request})
+        
+        # Return the serialized data as JSON response
+        return JsonResponse(serializer.data)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 
-@login_required
-# @permission_classes([IsAuthenticated])
-@api_view(['GET'])
-def course_details(request, course_id):
-    course = get_object_or_404(Course, id=course_id)
 
-    try:
-        if request.user.is_authenticated:
-            try:
-                monitor = Monitor.objects.get(user=request.user, landing_page=request.META.get(
-                    'HTTP_HOST') + request.META.get('PATH_INFO'), ip=request.META.get('REMOTE_ADDR'))
-                monitor.frequency += 1
-                monitor.save()
-
-                profile = Profile.objects.get(user=request.user) if Profile.objects.filter(
-                    user=request.user).exists() else None
-
-                return JsonResponse({'status': 'success', 'message': 'Course details', 'course': course, 'profile': profile})
-            except Monitor.DoesNotExist:
-                pass
-        else:
-            try:
-                monitor = Monitor()
-                monitor.ip = request.META.get('REMOTE_ADDR')
-                g = 'https://geolocation-db.com/jsonp/' + str(monitor.ip)
-                response = requests.get(g)
-                data = response.content.decode()
-                data = data.split("(")[1].strip(")")
-                location = json.loads(data)
-                monitor.country = location['country_name']
-                monitor.city = location['city']
-                monitor.region = location['region']
-                monitor.timeZone = location['time_zone']
-                user_agent = get_user_agent(request)
-                monitor.browser = user_agent.browser.family
-                monitor.browser_version = user_agent.browser.version_string
-                monitor.operating_system = user_agent.os.family
-                monitor.device = user_agent.device.family
-                monitor.language = request.headers.get('Accept-Language')
-                monitor.screen_resolution = request.headers.get(
-                    'X-Original-Request-Screen-Resolution')
-                monitor.referrer = request.META.get('HTTP_REFERER')
-                monitor.landing_page = request.META.get(
-                    'HTTP_HOST') + request.META.get('PATH_INFO')
-                monitor.frequency = 1
-                monitor.save()
-            except Exception as e:
-                return JsonResponse({'status': 'error', 'message': 'Monitor not created', 'error': str(e)})
-
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': 'Course not found', 'error': str(e)})
 
 
 @login_required
@@ -577,8 +548,7 @@ def enroll_course(request, course_id):
     else:
         return JsonResponse({'status': 'error', 'message': 'Already enrolled'})
 
-@login_required
-@permission_classes([IsAuthenticated])
+
 @api_view(['POST'])
 def add_video_comment(request):
     video = get_object_or_404(Video, id=request.data.get('video_id'))
@@ -675,3 +645,14 @@ def get_user_enrolled_courses(request):
         course_list.append(c.course)
     serilized_course=DashboardCourseSerializer(course_list,many=True, context={'request': request})
     return JsonResponse(serilized_course.data, safe=False)
+
+@api_view(['GET'])
+def get_course_content(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    modules = Module.objects.filter(course=course)
+    videos = Video.objects.filter(module__in=modules)
+    notes = Notes.objects.filter(module__in=modules)
+    modules=ModuleSerializer(modules,many=True).data
+    videos=VideoSerializer(videos,many=True,context={'request':request}).data
+    notes=NotesSerializer(notes,many=True).data
+    return JsonResponse({'status': 'success', 'message': 'Course Content', 'modules': modules, 'videos': videos, 'notes': notes})

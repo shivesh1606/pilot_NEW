@@ -79,6 +79,7 @@ class Module(BaseModel):
     total_video = models.IntegerField(null=True, blank=True, default=0)
     total_notes = models.IntegerField(null=True, blank=True, default=0)
     duration = models.CharField(max_length=2000, blank=True, null=True)
+    
 
     def save(self, *args, **kwargs):
         self.total_video = Video.objects.filter(module=self).count()

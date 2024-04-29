@@ -28,6 +28,22 @@ class CourseSerializer(serializers.ModelSerializer):
             print(data['image_course'])
         except Exception as e:
             print(e)
+        try:
+            if instance.teacher:
+                data['teacher'] = instance.teacher.profile.name
+            else:
+                data['teacher'] = None
+            if instance.organization:
+                data['organization'] = instance.organization.profile.name
+            else:
+                data['organization'] = None
+
+        except Exception as e:
+            print(e)
+        # return many to many field  enroller_user
+        data['enroller_user'] = [enroller_user.profile.name for enroller_user in instance.enroller_user.all()]
+
+
         return data
 
 class DashboardCourseSerializer(serializers.ModelSerializer):
@@ -64,6 +80,17 @@ class VideoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Video
         fields = '__all__'
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        try:
+            if instance.video:
+                data['video'] = request.build_absolute_uri(instance.video.url)
+            else:
+                data['video'] = None
+        except Exception as e:
+            print(e)
+        return data
 
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:

@@ -27,8 +27,8 @@ urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
     path("course/create_course/", views.create_course, name="create_course"),
     path(
-        "course/course_details/<int:course_id>",
-        views.course_details,
+        "course/course_details/<int:pk>",
+        views.CourseDetailView.as_view(),
         name="course_details",
     ),
     path(
@@ -65,11 +65,12 @@ urlpatterns = [
     path("quiz/delete_quiz/<int:quiz_id>", views.delete_quiz, name="delete_quiz"),
     path("status/make_teacher/", views.make_teacher, name="make_teacher"),
     path("org/teacher_list/", views.teacher_list, name="teacher_list"),
-    path("course/enroll_course/", views.enroll_course, name="enroll_course"),
+    path("course/enroll_course/<int:course_id>", views.enroll_course, name="enroll_course"),
     path("comment/add_video_comment/", views.add_video_comment, name="add_video_comment"),
     path("comment/get_video_comments/<int:video_id>", views.get_video_comments, name="get_video_comments"),
     path("video/set_video_progress/", views.update_user_video_progress, name="set_video_progress"),
     path("get_user_progress/", views.get_user_video_progress, name="get_user_progress"),
     path("get_course_progress/", views.get_course_progress, name="get_course_progress"),
     path("user_enrolled_courses/", views.get_user_enrolled_courses, name="user_enrolled_courses"),
+    path("get_course_content/<int:course_id>", views.get_course_content, name="get_course_content"),
 ]
