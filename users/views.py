@@ -189,10 +189,8 @@ def update_profile(request):
     except Profile.DoesNotExist:
         return Response({'success':True, 'message': 'Profile does not exist for user'}, status=status.HTTP_404_NOT_FOUND)
 
-<<<<<<< HEAD
-    if request.method in ['PUT', 'PATCH','UPDATE']:
-        serializer = ProfileSerializer(r_profile, data=request.data, partial=True)
-=======
+    # if request.method in ['PUT', 'PATCH','UPDATE']:
+    #     serializer = ProfileSerializer(r_profile, data=request.data, partial=True)
     if request.method in ['PUT', 'PATCH']:
         data = request.data.copy()
 
@@ -202,18 +200,13 @@ def update_profile(request):
                 del data[key]
 
         serializer = ProfileSerializer(r_profile, data=data, partial=True)
->>>>>>> 68e4df86d10ba22188866daad64b5fe3cc545b4d
         if serializer.is_valid():
             updated_profile = serializer.save()
 
             if r_profile.status == "Student":
                 student = Student.objects.filter(profile=r_profile).first()
                 if student:
-<<<<<<< HEAD
-                    student_serializer = StudentSerializer(student, data=request.data)
-=======
                     student_serializer = StudentSerializer(student, data=data, partial=True)
->>>>>>> 68e4df86d10ba22188866daad64b5fe3cc545b4d
                     if student_serializer.is_valid():
                         student_serializer.save()
                     else:
@@ -259,10 +252,6 @@ def profile_detail(request, profile_id):
 
     elif profile.status == 'Teacher':
         teacher = get_object_or_404(Teacher, profile=profile)
-<<<<<<< HEAD
-        teacher_serializer = TeacherSerializer(teacher,context={'request': request})
-        return Response(teacher_serializer.data)
-=======
         teacher_serializer = TeacherSerializer(teacher)
         # also i need details from the corresponding profile model of that teacher
         profile_serializer = ProfileSerializer(profile)
@@ -271,7 +260,6 @@ def profile_detail(request, profile_id):
             'profile': profile_serializer.data
         }
         return Response(data)
->>>>>>> 68e4df86d10ba22188866daad64b5fe3cc545b4d
 
     else:
         student = get_object_or_404(Student, profile=profile)

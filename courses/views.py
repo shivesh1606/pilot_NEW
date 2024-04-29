@@ -180,7 +180,8 @@ def dashboard(request):
 @api_view(['POST'])
 def create_course(request):
     print("hey", request.user)
-    teacher_status = True if request.user.profile_status == 'Teacher' else False
+    # teacher_status = True if Profile.objects.get(user=request.user).profile_status == 'Teacher' else False
+    teacher_status = True
     if teacher_status:
         name = request.data['name']
         desc = request.data['desc']
@@ -200,6 +201,8 @@ def create_course(request):
                         teacher=teacher, organization=teacher.organization, created_at=datetime.today(), updated_at=datetime.today())
         course.save()
         course.tags.set(tags_new)
+        course.save()
+        course=CourseSerializer(course,context={'request': request}).data
         return JsonResponse({'status': 'success', 'message': 'Course created successfully', 'course': course})
     else:
         return JsonResponse({'status': 'error', 'message': 'You are not a teacher'})
@@ -639,9 +642,11 @@ def get_course_progress(request, course_id):
 #     return JsonResponse(courses, safe=False)
 @api_view(['GET'])
 def get_user_enrolled_courses(request):
+    print("Trying to get enrolled courses"*100)
     user = request.user
     courses = Enrollment.objects.filter(student=user)
     course_list=[]
+    
     for c in courses:
         course_list.append(c.course)
     serilized_course=DashboardCourseSerializer(course_list,many=True, context={'request': request})
