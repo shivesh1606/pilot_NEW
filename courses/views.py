@@ -175,10 +175,11 @@ def dashboard(request):
         return JsonResponse({'status': 'error', 'message': 'Profile does not exist'})
 
 
-@login_required
-@permission_classes([IsAuthenticated])
+# @login_required
+# @permission_classes([IsAuthenticated])
 @api_view(['POST'])
 def create_course(request):
+    print("hey", request.user)
     teacher_status = True if request.user.profile_status == 'Teacher' else False
     if teacher_status:
         name = request.data['name']
@@ -498,7 +499,7 @@ def delete_quiz(request, quiz_id):
         return JsonResponse({'status': 'success', 'message': 'Quiz deleted successfully'})
 
 
-@login_required
+# @login_required
 @permission_classes([IsAuthenticated])
 @api_view(['POST'])
 def make_teacher(request):
@@ -530,7 +531,7 @@ def teacher_list(request):
     org = Organization.objects.filter(profile=r_profile)
     if org:
         org = Organization.objects.get(profile=r_profile)
-        teachers = Teacher.objects.filter(organization=org)
+        teachers = list(Teacher.objects.filter(organization=org).values())
         return JsonResponse({'status': 'success', 'message': 'Teachers', 'teachers': teachers})
     else:
         return JsonResponse({'status': 'error', 'message': 'You are not authorized to view teachers'})

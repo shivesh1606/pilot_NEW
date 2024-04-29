@@ -27,12 +27,13 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
         print('Token', token)
         user_jwt = AnonymousUser()
         if token is not None:
-            token=token.split(' ')[1]
-            token=str(token)
             try:
+                token=token.split(' ')[1]
+                token=str(token)
                 user_jwt = jwt.decode(
                     token,
-                    "secret", algorithm="HS256"
+                    "secret",
+                    algorithms=["HS256"]
                 )
                 user_jwt = User.objects.get(
                     id=user_jwt['user_id'])

@@ -11,5 +11,6 @@ urlpatterns = [
     path('profile/<uuid:profile_id>/',views.profile_detail, name='profile_detail'),
     path('coursebase/', views.coursebase, name='coursebase'),
     path('confirm/<str:token>/', views.confirm_email, name='confirm_email'),
-    
+    path('get_all_profiles/',views. user_list, name='all-profiles'),
+
 ]

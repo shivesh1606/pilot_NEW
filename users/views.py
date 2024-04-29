@@ -180,24 +180,40 @@ def registerUser(request):
 @csrf_exempt
 @api_view(['GET', 'PUT', 'PATCH','UPDATE'])
 def update_profile(request):
-    print(request.user.is_authenticated)
-    print("Something")
-    print(request.user)
+    # print(request.user.is_authenticated)
+    # print("Something")
+    # print(request.user)
     # if request.user.is_authenticated:
     try:
         r_profile = Profile.objects.get(user=request.user)
     except Profile.DoesNotExist:
         return Response({'success':True, 'message': 'Profile does not exist for user'}, status=status.HTTP_404_NOT_FOUND)
 
+<<<<<<< HEAD
     if request.method in ['PUT', 'PATCH','UPDATE']:
         serializer = ProfileSerializer(r_profile, data=request.data, partial=True)
+=======
+    if request.method in ['PUT', 'PATCH']:
+        data = request.data.copy()
+
+        # Remove any fields with null values from the request data
+        for key, value in data.items():
+            if value is None:
+                del data[key]
+
+        serializer = ProfileSerializer(r_profile, data=data, partial=True)
+>>>>>>> 68e4df86d10ba22188866daad64b5fe3cc545b4d
         if serializer.is_valid():
-            serializer.save()
+            updated_profile = serializer.save()
 
             if r_profile.status == "Student":
                 student = Student.objects.filter(profile=r_profile).first()
                 if student:
+<<<<<<< HEAD
                     student_serializer = StudentSerializer(student, data=request.data)
+=======
+                    student_serializer = StudentSerializer(student, data=data, partial=True)
+>>>>>>> 68e4df86d10ba22188866daad64b5fe3cc545b4d
                     if student_serializer.is_valid():
                         student_serializer.save()
                     else:
@@ -207,7 +223,7 @@ def update_profile(request):
             elif r_profile.status == "Teacher":
                 teacher = Teacher.objects.filter(profile=r_profile).first()
                 if teacher:
-                    teacher_serializer = TeacherSerializer(teacher, data=request.data, partial=True)
+                    teacher_serializer = TeacherSerializer(teacher, data=data, partial=True)
                     if teacher_serializer.is_valid():
                         teacher_serializer.save()
                     else:
@@ -216,13 +232,15 @@ def update_profile(request):
             elif r_profile.status == "Organization":
                 organization = Organization.objects.filter(profile=r_profile).first()
                 if organization:
-                    organization_serializer = OrganizationSerializer(organization, data=request.data, partial=True)
+                    organization_serializer = OrganizationSerializer(organization, data=data, partial=True)
                     if organization_serializer.is_valid():
                         organization_serializer.save()
                     else:
                         return Response(organization_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            profile_serializer = ProfileSerializer(updated_profile)
 
-            return Response({'success': True, 'message': 'Profile updated successfully'}, status=status.HTTP_201_CREATED)
+            return Response({'success': True, 'message': 'Profile updated successfully', 'profile': profile_serializer.data}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -241,8 +259,19 @@ def profile_detail(request, profile_id):
 
     elif profile.status == 'Teacher':
         teacher = get_object_or_404(Teacher, profile=profile)
+<<<<<<< HEAD
         teacher_serializer = TeacherSerializer(teacher,context={'request': request})
         return Response(teacher_serializer.data)
+=======
+        teacher_serializer = TeacherSerializer(teacher)
+        # also i need details from the corresponding profile model of that teacher
+        profile_serializer = ProfileSerializer(profile)
+        data = {
+            'teacher': teacher_serializer.data,
+            'profile': profile_serializer.data
+        }
+        return Response(data)
+>>>>>>> 68e4df86d10ba22188866daad64b5fe3cc545b4d
 
     else:
         student = get_object_or_404(Student, profile=profile)
@@ -324,3 +353,26 @@ def confirm_email(request,token):
     profile.verified_on = datetime.now()
     profile.save()
     return Response({'success': True, 'message': 'User confirmed successfully'}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def user_list(request):
+    if request.method == 'GET':
+        user_profile = Profile.objects.get(user=request.user)
+        if user_profile.status != 'Organization':
+            return Response({'error': 'Access denied. Only organizations can access this endpoint.'}, status=403)
+        
+        teacher_profiles = Profile.objects.filter(teacher__isnull=False)
+
+        # Get all student profiles
+        student_profiles = Profile.objects.filter(student__isnull=False)
+
+        # Serialize the data
+        teacher_profile_serializer = ProfileSerializer(teacher_profiles, many=True)
+        student_profile_serializer = ProfileSerializer(student_profiles, many=True)
+
+        # Combine the serialized data
+        user_data = teacher_profile_serializer.data + student_profile_serializer.data
+
+        # Return the response with user_data as a list
+        return Response(user_data)

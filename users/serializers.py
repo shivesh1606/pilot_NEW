@@ -9,6 +9,7 @@ class ProfileSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
+<<<<<<< HEAD
         print(instance.image_profile)
         print("Some Random Reqiestr",request)
         try:
@@ -18,6 +19,12 @@ class ProfileSerializer(serializers.ModelSerializer):
                 data['image_profile'] = None
         except Exception as e:
             print(e)
+=======
+        if instance.image_profile:
+            data['image_profile'] = request.build_absolute_uri(instance.image_profile.url) if request else None
+        else:
+            data['image_profile'] = None
+>>>>>>> 68e4df86d10ba22188866daad64b5fe3cc545b4d
         print(data['image_profile'])
         return data
 
